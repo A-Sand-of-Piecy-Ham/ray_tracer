@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use rand::{rngs::SmallRng, Rng};
 
 use crate::core::hittable::HitRecord;
+use crate::core::unit_vector;
 use crate::core::Ray;
 
 use super::Color;
@@ -15,7 +16,10 @@ pub enum Material {
     RandomDiffuse(RefCell<SmallRng>, Color),
     LambertianDiffuseRandom {rng_cell: RefCell<SmallRng>, albedo: Color },
     Metalic(Color),
+    // Albedo, fuzziness, rng_cell
     MetalicFuzz(Color, f32, RefCell<SmallRng>),
+    // Refraction index
+    Dielectric(f32)
 }
 
 impl Default for Material {
@@ -79,6 +83,17 @@ impl Material {
                 let scattered = Ray::new(rec.point, reflected);
                 let attenuation = *albedo;
                 return Some(ScatterContext{scattered, attenuation});
+            }
+            Self::Dielectric(refraction_index) => {
+                let attenuation = Color(1.0, 1.0, 1.0);
+                let ri = if rec.front_face  {1.0/refraction_index} else {*refraction_index};
+            
+                let unit_direction = unit_vector(ray_in.direction);
+                let refracted = Vec3::refract(&unit_direction, &rec.normal, ri);
+
+                let scattered = Ray::new(rec.point, refracted);
+
+                return Some(ScatterContext { attenuation, scattered})
             }
         }
     }

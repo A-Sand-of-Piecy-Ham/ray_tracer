@@ -66,7 +66,7 @@ fn main() {
         rng_cell: rng.clone(), 
         albedo: Color(0.8,0.8,0.0)
     });
-    let material_left = Rc::new(Material::MetalicFuzz(Color(0.8,0.8,0.8), 0.2, rng.clone()));
+    let material_left = Rc::new(Material::Dielectric(1.50));
     let material_right = Rc::new(Material::MetalicFuzz(Color(0.8,0.6,0.2), 1.0, rng.clone()));
     let material_center = Rc::new(Material::LambertianDiffuseRandom {
         rng_cell: rng.clone(), 
