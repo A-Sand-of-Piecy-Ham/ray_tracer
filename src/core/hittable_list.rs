@@ -21,23 +21,20 @@ impl HittableList {
     pub fn add(&mut self, object: Rc<dyn Hittable>) {
         self.objects.push(object);
     }
-    pub fn hit(&self, ray: &Ray, ray_bounds: Interval, rec: &mut HitRecord) -> bool {
-        let mut temp_rec: HitRecord = HitRecord::default();
+    pub fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord> {
+        let mut rec: Option<HitRecord> = None; // = HitRecord::default();
         
-        let mut hit_anything = false;
-        let mut material: Option<Material> = None;
 
         self.objects.iter().fold(ray_bounds.max, |closest_so_far, object| {
-            if object.hit(ray, Interval::new(ray_bounds.min, closest_so_far), &mut temp_rec) {
-                hit_anything = true;
+            if let Some(hit_rec) = object.hit(ray, Interval::new(ray_bounds.min, closest_so_far)) {
                 // FIX: BAD!! POSSIBLE PERFORMANCE COST
-                *rec = temp_rec.clone();
-                return temp_rec.t;   
+                let t = hit_rec.t;
+                rec = Some(hit_rec);
+                return t;   
             }
             closest_so_far
         });
 
-
-        return hit_anything
+        return rec;
     }
 }

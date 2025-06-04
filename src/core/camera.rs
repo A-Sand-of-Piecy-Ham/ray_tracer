@@ -6,6 +6,8 @@ use indicatif::ProgressBar;
 use rand::rngs::SmallRng;
 use rand::Rng;
 
+use crate::core::material::ScatterContext;
+
 use super::hittable::HitRecord;
 use super::material::Material;
 use super::{hittable_list::HittableList, Vec3};
@@ -27,7 +29,7 @@ pub enum AntiAliasing {
 }
 
 impl AntiAliasing {
-    pub fn sample(&self, i: usize, j: usize, camera: &Camera, world: &HittableList, bar: &ProgressBar) -> Color {
+    pub fn sample(&self, i: usize, j: usize, camera: &Camera, world: &HittableList) -> Color {
 
         match self {
             Self::None => {
@@ -41,7 +43,6 @@ impl AntiAliasing {
 
                 let pixel_color = Camera::ray_color(&ray, camera.max_depth, &world);
                 
-                bar.inc(1);
 
                 pixel_color
             }
@@ -53,7 +54,6 @@ impl AntiAliasing {
                 for _ in 0..*num_samples {
                     let ray = camera.get_ray_rand(i, j, rng);
                     pixel_color += Camera::ray_color(&ray, camera.max_depth, world);
-                    bar.inc(1);
                 }
 
 
@@ -142,7 +142,7 @@ impl Camera {
             AntiAliasing::None => 1,
             AntiAliasing::RandomSamples(num, _) => num 
         };
-        let bar = ProgressBar::new((self.image_height*self.image_width*num_samples as usize) as u64);
+        let bar = ProgressBar::new((self.image_height*self.image_width) as u64);
 
         let mut out = BufWriter::new(std::io::stdout());
 
@@ -150,11 +150,13 @@ impl Camera {
         writeln!(&mut out, "P3\n{} {}\n255\n", self.image_width, self.image_height).unwrap();
 
         for j in 0..self.image_height {
+            bar.inc(self.image_width as u64);
             for i in 0..self.image_width {
 
-                let pixel_color = self.anti_aliasing.sample(i, j, self, world, &bar);
+                let pixel_color = self.anti_aliasing.sample(i, j, self, world);
 
                 write_color(&mut out, &pixel_color).unwrap();
+
             }
         }
         bar.finish();
@@ -190,23 +192,19 @@ impl Camera {
 
     fn ray_color(ray: &Ray, depth: u32, world: &HittableList) -> Color {
         if depth <= 0 {return Color(0.,0.,0.)}
-        let mut rec = HitRecord::new();
         
         // Low bound to fix shadow acne
-        if world.hit(ray, Interval::new(0.001, INFINITY), &mut rec) {
-            match rec.material.as_ref()  {
-                Material::Debug => {
-                    return 0.5 * (rec.normal + Color(1., 1., 1.));
-                }
-                Material::RandomDiffuse(rng_cell) => {
-                    let direcion = {
-                        let rng = &mut rng_cell.borrow_mut();
-                        Vec3::random_on_hemisphere(&rec.normal, rng)
-                    };
-                    return 0.5 * Self::ray_color(&Ray::new(rec.point, direcion), depth-1, world);
-                }
-            } 
-            
+        if let Some(rec) = world.hit(ray, Interval::new(0.001, INFINITY)) {
+            if let Material::Debug(reflectance) = rec.material.as_ref() {
+                
+                return *reflectance * (rec.normal + Color(1., 1., 1.));
+            }
+
+            if let Some(ScatterContext{scattered, attenuation}) = rec.material.scatter(ray, &rec) {
+                return attenuation * Self::ray_color(&scattered, depth-1, world);
+            }
+            return Color(0.,0.,0.);
+        
         }
 
         
@@ -216,4 +214,3 @@ impl Camera {
         Color(1.0, 1.0, 1.0) * (1.0 - a) + a*Color(0.5, 0.7, 1.0)
     }
 }
-

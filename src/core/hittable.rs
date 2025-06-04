@@ -11,7 +11,7 @@ use super::Ray;
 use super::material::Material;
 
 // #[derive(Debug, Clone, Copy, Default)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 /// t is the coefficient for the ray's direction vector, added with the origin, producing the hit point
 pub struct HitRecord {
     pub point: Point3,
@@ -22,21 +22,24 @@ pub struct HitRecord {
 }
 
 impl HitRecord {
-    /// Sets the hit record normal vector.
+    /// Returns front_face bool and corresponding normal vector
     /// *Note:* the parameter `outward_normal` is assumed to have unit length
-    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vec3) {
-        self.front_face = ray.direction.dot(outward_normal) < 0.0;
-        self.normal = match self.front_face {
+    pub fn get_face_normal(ray: &Ray, outward_normal: &Vec3) -> (bool, Vec3) {
+        let front_face = ray.direction.dot(outward_normal) < 0.0;
+        let normal = match front_face {
             true => *outward_normal, 
             false => -*outward_normal
         };
+        (front_face, normal)
     }
+
     pub fn new() -> Self {
-        Self::default()
+        todo!()
+        // Self::default()
     }
 }
 
 pub trait Hittable {
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool;
-    fn hit(&self, ray: &Ray, ray_bounds: Interval, rec: &mut HitRecord) -> bool;
+    fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord>;
 }

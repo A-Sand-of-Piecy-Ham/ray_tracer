@@ -27,7 +27,7 @@ impl Sphere {
 
 impl Hittable for Sphere { 
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool {
-    fn hit(&self, ray: &Ray, ray_bounds: Interval, rec: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord> {
 
         let oc: Vec3 = self.center - ray.origin;
         let a: f32 = ray.direction.length_squared();
@@ -36,7 +36,7 @@ impl Hittable for Sphere {
         let c: f32 = oc.length_squared() - (self.radius*self.radius);
 
         let discriminant: f32 = h*h - a*c;
-        if discriminant < 0.0 {return false}
+        if discriminant < 0.0 {return None}
         
         let sqrtd: f32 = discriminant.sqrt();
         
@@ -44,18 +44,25 @@ impl Hittable for Sphere {
         if !ray_bounds.surrounds(root) {
             root = (h + sqrtd) / a;
             if !ray_bounds.surrounds(root) {
-                return false;
+                return None;
             }
         }
 
-        rec.t = root;
-        rec.point = ray.at(rec.t);
-        let outward_normal = (rec.point - self.center) / self.radius;
-        rec.set_face_normal(ray, &outward_normal);
+        let t = root;
+        let point = ray.at(t);
+
+        let outward_normal = (point - self.center) / self.radius;
+        let (front_face, normal) = HitRecord::get_face_normal(ray, &outward_normal);
 
         // FIX: Bad performance?
-        rec.material = self.material.clone();
+        let material = self.material.clone();
 
-        return true;
+        return Some(HitRecord {
+            point,
+            normal,
+            t,
+            front_face,
+            material
+        });
     }
 }

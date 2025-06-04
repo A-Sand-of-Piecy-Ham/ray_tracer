@@ -11,7 +11,10 @@ pub fn write_color<W: Write>(out: &mut BufWriter<W>, pixel_color: &Color) -> io:
     let intensity = Interval::new(0.0, 0.999);
     // let intensity = Interval::new(0.0, 1.0-EPSILON);
 
-    let Color(r, g, b) = *pixel_color;
+    let Color(mut r, mut g, mut b) = *pixel_color;
+
+    // Gamma correction
+    (r, g, b) = (linear_to_gamma(r), linear_to_gamma(g), linear_to_gamma(b));
 
     let ir = (255.999 * intensity.clamp(r)) as u32;
     let ig = (255.999 * intensity.clamp(g)) as u32;
@@ -22,4 +25,15 @@ pub fn write_color<W: Write>(out: &mut BufWriter<W>, pixel_color: &Color) -> io:
     // out.write()
 
     Ok(())
+}
+
+/// Convert linear color space to gamma corrected
+/// 
+/// TODO: Implement one to work on full colors?
+// #[inline]
+fn linear_to_gamma(linear_component: f32) -> f32 {
+    if linear_component > 0. {
+        return linear_component.sqrt();
+    }
+    return 0.;
 }

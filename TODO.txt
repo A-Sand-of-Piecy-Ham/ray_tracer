@@ -1,0 +1,2 @@
+- Compute pass to find areas of high chaos/energy. Send a second pass of rays towards those hotspots
+- replace black from bounce limit with result from traditional rendering

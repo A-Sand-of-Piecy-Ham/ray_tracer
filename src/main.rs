@@ -58,25 +58,48 @@ fn main() {
 
     let mut world = HittableList::new();
     let rng = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
+
     // let material = Rc::new(Material::Debug);
-    let material = Rc::new(Material::RandomDiffuse(rng.clone()));
+    // let material = Rc::new(Material::RandomDiffuse(rng.clone(), Color(0.5,0.5,0.5)));
+    // let material = Rc::new(Material::LambertianDiffuseRandom {rng_cell: rng.clone(), albedo: Color(0.5,0.5,0.5)});
+    let material_ground = Rc::new(Material::LambertianDiffuseRandom {
+        rng_cell: rng.clone(), 
+        albedo: Color(0.8,0.8,0.0)
+    });
+    let material_left = Rc::new(Material::MetalicFuzz(Color(0.8,0.8,0.8), 0.2, rng.clone()));
+    let material_right = Rc::new(Material::MetalicFuzz(Color(0.8,0.6,0.2), 1.0, rng.clone()));
+    let material_center = Rc::new(Material::LambertianDiffuseRandom {
+        rng_cell: rng.clone(), 
+        albedo: Color(0.1,0.2,0.5)
+    });
+    
     let max_bounces = 10;
+    // let max_bounces = 2;
 
     world.add(Rc::new(
-        Sphere::new(Point3(0.,0.,-1.0), 0.5, material.clone())
+        Sphere::new(Point3(0.,-100.5,-1.0), 100., material_ground.clone())
     ));
     world.add(Rc::new(
-        Sphere::new(Point3(0.,-100.5,-1.0), 100., material.clone())
+        Sphere::new(Point3(0.,0.,-1.2), 0.5, material_center.clone())
     ));
+    world.add(Rc::new(
+        Sphere::new(Point3(-1.0, 0.0, -1.0), 0.5, material_left.clone())
+    ));
+    world.add(Rc::new(
+        Sphere::new(Point3(1.0, 0.0, -1.0), 0.5, material_right.clone())
+    ));
+
 
     let aspect_ratio:f64 = 16.0 / 9.0;
-    let image_width:usize = 400;
-    let pixel_samples = 100;
+    // let image_width:usize = 400;
+    // let image_width:usize = 400;
+    let image_width:usize = 600;
+    let pixel_samples = 50;
 
 
     let anti_aliasing = AntiAliasing::RandomSamples(pixel_samples, rng.clone());
 
-    let camera = Camera::new_builder(aspect_ratio, image_width, max_bounces, anti_aliasing).build();
+    let camera = Camera::new_builder(aspect_ratio, image_width, max_bounces + 1, anti_aliasing).build();
 
     camera.render(&world);
 

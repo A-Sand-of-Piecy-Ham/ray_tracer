@@ -1,4 +1,4 @@
-use std::ops;
+use std::{f32, ops};
 
 use rand::{rngs::SmallRng, Rng};
 
@@ -142,6 +142,10 @@ impl Vec3 {
         if dot(&on_unit_sphere, normal) > 0.0 {return on_unit_sphere}
         else {return -on_unit_sphere}
     }
+    // Reflects against surface described by normal
+    pub fn reflect(&self, norm: &Vec3) -> Vec3 {
+        *self - 2.*dot(self,norm) * *norm
+    }
 
     pub fn dot(&self, rhs: &Vec3) -> f32 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
@@ -167,5 +171,10 @@ impl Vec3 {
     }
     pub fn z(&self) -> &f32 {
         &self.2
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s = f32::EPSILON;
+        (self.0.abs() < s) && (self.1.abs() < s) && (self.2.abs() < s) 
     }
 }
