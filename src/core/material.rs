@@ -18,8 +18,10 @@ pub enum Material {
     Metalic(Color),
     // Albedo, fuzziness, rng_cell
     MetalicFuzz(Color, f32, RefCell<SmallRng>),
-    // Refraction index
-    Dielectric(f32)
+    // Refraction index    
+    // Refractive index in vacuum or air, or the ratio of the material's refractive index over
+    // the refractive index of the enclosing media
+    Dielectric(f32, RefCell<SmallRng>)
 }
 
 impl Default for Material {
@@ -28,6 +30,7 @@ impl Default for Material {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ScatterContext {
     pub attenuation: Color,
     pub scattered: Ray
@@ -84,18 +87,39 @@ impl Material {
                 let attenuation = *albedo;
                 return Some(ScatterContext{scattered, attenuation});
             }
-            Self::Dielectric(refraction_index) => {
+            Self::Dielectric(refraction_index, rng_cell) => {
                 let attenuation = Color(1.0, 1.0, 1.0);
                 let ri = if rec.front_face  {1.0/refraction_index} else {*refraction_index};
-            
-                let unit_direction = unit_vector(ray_in.direction);
-                let refracted = Vec3::refract(&unit_direction, &rec.normal, ri);
 
-                let scattered = Ray::new(rec.point, refracted);
+
+                let unit_direction = unit_vector(ray_in.direction);
+                let cos_theta = (-unit_direction).dot(&rec.normal).min(1.0); // This is recomputed in the refraction code, is that bad?
+                let sin_theta = (1.0 - cos_theta*cos_theta).sqrt();
+
+                let cannot_refract: bool = ri * sin_theta > 1.0;
+
+                let direction: Vec3;
+
+                let random_float:f32 = {rng_cell.borrow_mut().random()};
+
+                if cannot_refract || reflectance(cos_theta, ri) > random_float {
+                    direction = Vec3::reflect(&unit_direction, &rec.normal);                    
+                }
+                else {
+                    direction = Vec3::refract(&unit_direction, &rec.normal, ri);
+                }
+
+                let scattered = Ray::new(rec.point, direction);
 
                 return Some(ScatterContext { attenuation, scattered})
             }
         }
     }
+}
 
+/// Schlick's approximation for reflectance of dielectric
+fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
+   let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
+   let r1 = r0*r0;
+   return r1 + (1.0-r1) * (1.0 - cosine).powi(5);
 }

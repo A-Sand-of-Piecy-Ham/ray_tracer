@@ -7,6 +7,7 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 
 use crate::core::material::ScatterContext;
+use crate::core::util::degrees_to_radians;
 
 use super::hittable::HitRecord;
 use super::material::Material;
@@ -22,8 +23,9 @@ use super::unit_vector;
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub enum AntiAliasing {
+    #[default]
     None,
     RandomSamples(u16, RefCell<SmallRng>)
 }
@@ -65,43 +67,62 @@ impl AntiAliasing {
 
 }
 
-
+#[derive(Debug, Default, Clone)]
 pub struct CameraBuilder {
-    aspect_ratio: f64,
-    image_width: usize,
-    anti_aliasing: AntiAliasing,
-    max_depth: u32,
+    pub aspect_ratio: f64,
+    pub image_width: usize,
+    pub anti_aliasing: AntiAliasing,
+    pub max_depth: u32,
+
+    pub vfov: f32,
+    pub lookfrom: Point3,
+    pub lookat: Point3,
+    pub vup: Vec3, // Camera-relative up direction
 }
+
+// impl Default for CameraBuilder {
+
+// }
 
 impl CameraBuilder {
     pub fn build(self) -> Camera {
         let aspect_ratio = self.aspect_ratio;
         let image_width = self.image_width;
         let image_height: usize = match (image_width as f64 / aspect_ratio) as usize {
-            v if v >= 1 => v,
+            x if x >= 1 => x,
             _ => 1
         };
-        let center = Point3(0., 0., 0.);
+        
+        let center = self.lookfrom;
 
-        let focal_length = 1.0;
-        let viewport_height: f32 = 2.0;
+        // Determine viewport dimensions
+        let focal_length = (self.lookfrom - self.lookat).length();
+        let theta = degrees_to_radians(self.vfov);
+        let h = (theta/2.0).tan();
+        let viewport_height: f32 = 2.0 * h * focal_length;
         let viewport_width: f32 = viewport_height * (self.image_width as f32 / image_height as f32);
 
+        let w = unit_vector(self.lookfrom - self.lookat);
+        let u = unit_vector(Vec3::cross(self.vup, w));
+        let v = Vec3::cross(w, u);
+        
+        
         // Calculate vectors across horizontal and down the vertial viewport edges
-        let viewport_u: Vec3 = Vec3(viewport_width, 0., 0.);
-        let viewport_v: Vec3 = Vec3(0., -viewport_height, 0.);
+        let viewport_u: Vec3 = u * viewport_width;    //Vec3(viewport_width, 0., 0.);
+        let viewport_v: Vec3 = -v * viewport_height;  //Vec3(0., -viewport_height, 0.);
  
         // Calculate the horizontal and vertical delta vectors from pixel to pixel
         let pixel_delta_u: Vec3 = viewport_u.div_scalar(self.image_width as f32);
         let pixel_delta_v: Vec3 = viewport_v.div_scalar(image_height as f32);
         
         // Calculate the location of the upper left pixel
-        let viewport_upper_left = center - Vec3(0.,0., focal_length as f32) - viewport_u/2. - viewport_v/2.;
+        let viewport_upper_left = center - focal_length * w - viewport_u/2. - viewport_v/2.;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         // Error: Cannot move out of builder
         let anti_aliasing = self.anti_aliasing;
         let max_depth = self.max_depth;
+
 
         Camera{
             aspect_ratio,
@@ -112,7 +133,9 @@ impl CameraBuilder {
             pixel_delta_u,
             pixel_delta_v,
             anti_aliasing,
-            max_depth
+            max_depth,
+            vfov: self.vfov,
+            basis: Vec3Basis { u, v, w }
         }
     }
 }
@@ -130,11 +153,24 @@ pub struct Camera {
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     max_depth: u32,
+    /// Vertial view angle
+    vfov: f32,
+    // lookfrom: Point3,
+    // lookat: Point3,
+
+    basis: Vec3Basis,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Vec3Basis {
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
 }
 
 impl Camera {
-    pub fn new_builder(aspect_ratio: f64, image_width: usize, max_depth: u32, anti_aliasing: AntiAliasing) -> CameraBuilder {
-        CameraBuilder{aspect_ratio, image_width, anti_aliasing, max_depth}
+    pub fn new_builder(aspect_ratio: f64, image_width: usize, max_depth: u32, anti_aliasing: AntiAliasing, vfov: f32, lookat: Point3, lookfrom: Point3, vup: Vec3) -> CameraBuilder {
+        CameraBuilder{aspect_ratio, image_width, anti_aliasing, max_depth, vfov, lookfrom, lookat, vup}
     }
 
     pub fn render(&self, world: &HittableList) {

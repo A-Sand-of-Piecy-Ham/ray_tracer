@@ -156,6 +156,13 @@ impl Vec3 {
     pub fn dot(&self, rhs: &Vec3) -> f32 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
+    pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
+        return Vec3(
+            u.1 * v.2 - u.2 * v.1,
+            u.2 * v.0 - u.0 * v.2,
+            u.0 * v.1 - u.1 * v.0
+        )
+    }
 
     pub fn length_squared(&self) -> f32 {
         self.0 * self.0 + self.1 * self.1 + self.2 * self.2
