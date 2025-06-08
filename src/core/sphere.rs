@@ -1,17 +1,18 @@
 
-use std::ops;
 use std::rc::Rc;
 
 use super::hittable::Hittable;
 use super::ray::Ray;
 use super::vec3::Vec3;
-use super::{material, Point3};
+use super::Point3;
 use super::hittable::HitRecord;
 use super::Interval;
 use super::material::Material;
 
+#[allow(non_camel_case_types)]
 type fPE = f32;
 
+#[derive(Clone, Debug)]
 pub struct Sphere {
     pub center: Point3,
     pub radius: fPE,
@@ -21,7 +22,7 @@ pub struct Sphere {
 
 impl Sphere {
     pub fn new(center: Vec3, radius: f32, material: Rc<Material>) -> Self {
-        Self{center: center, radius: radius.max(0.0), material, _lock:()}
+        Self{center, radius: radius.max(0.0), material, _lock:()}
     }
 }
 
@@ -57,12 +58,12 @@ impl Hittable for Sphere {
         // FIX: Bad performance?
         let material = self.material.clone();
 
-        return Some(HitRecord {
+        Some(HitRecord {
             point,
             normal,
             t,
             front_face,
             material
-        });
+        })
     }
 }

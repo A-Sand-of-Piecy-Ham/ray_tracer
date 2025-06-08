@@ -1,6 +1,4 @@
-use std::{default, f32::INFINITY};
-
-
+const INFINITY:f32 = f32::INFINITY;
 
 pub struct Interval {
     pub min: f32,
@@ -17,9 +15,11 @@ impl Interval {
     pub fn new(min: f32, max: f32) -> Self {
         Self{min, max}
     }
+    #[allow(dead_code)]
     pub fn size(&self) -> f32 {
         self.max - self.min
     }
+    #[allow(dead_code)]
     pub fn contains(&self, x: f32) -> bool {
         return self.min <= x && x <= self.max;
     }
@@ -38,6 +38,7 @@ impl Interval {
         Self{min: INFINITY, max: -INFINITY}
     }
 
+    #[allow(dead_code)]
     pub fn universe() -> Self {
         Self{min: -INFINITY, max: INFINITY}
     }

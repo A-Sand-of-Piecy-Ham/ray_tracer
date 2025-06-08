@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::f32::INFINITY;
+// use f32::INFINITY;
 use std::io::{BufWriter, Write};
 
 use indicatif::ProgressBar;
@@ -9,7 +9,7 @@ use rand::Rng;
 use crate::core::material::ScatterContext;
 use crate::core::util::degrees_to_radians;
 
-use super::hittable::HitRecord;
+// use super::hittable::HitRecord;
 use super::material::Material;
 use super::{hittable_list::HittableList, Vec3};
 
@@ -134,8 +134,8 @@ impl CameraBuilder {
             pixel_delta_v,
             anti_aliasing,
             max_depth,
-            vfov: self.vfov,
-            basis: Vec3Basis { u, v, w }
+            // vfov: self.vfov,
+            // basis: Vec3Basis { u, v, w },
         }
     }
 }
@@ -153,14 +153,15 @@ pub struct Camera {
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     max_depth: u32,
-    /// Vertial view angle
-    vfov: f32,
+    // /// Vertial view angle
+    // vfov: f32,
     // lookfrom: Point3,
     // lookat: Point3,
 
-    basis: Vec3Basis,
+    // basis: Vec3Basis,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy)]
 struct Vec3Basis {
     u: Vec3,
@@ -169,15 +170,16 @@ struct Vec3Basis {
 }
 
 impl Camera {
+    #[allow(unused)]
     pub fn new_builder(aspect_ratio: f64, image_width: usize, max_depth: u32, anti_aliasing: AntiAliasing, vfov: f32, lookat: Point3, lookfrom: Point3, vup: Vec3) -> CameraBuilder {
         CameraBuilder{aspect_ratio, image_width, anti_aliasing, max_depth, vfov, lookfrom, lookat, vup}
     }
 
     pub fn render(&self, world: &HittableList) {
-        let num_samples = match self.anti_aliasing {
-            AntiAliasing::None => 1,
-            AntiAliasing::RandomSamples(num, _) => num 
-        };
+        // let num_samples = match self.anti_aliasing {
+        //     AntiAliasing::None => 1,
+        //     AntiAliasing::RandomSamples(num, _) => num 
+        // };
         let bar = ProgressBar::new((self.image_height*self.image_width) as u64);
 
         let mut out = BufWriter::new(std::io::stdout());
@@ -198,15 +200,13 @@ impl Camera {
         bar.finish();
     }
 
+    // fn initialize() {
+    //     todo!()
+    // }
 
-    fn initialize() {
-
-        todo!()
-    }
-
-    fn get_ray(&self, i: usize, j: usize) -> Ray {
-        todo!()
-    }
+    // fn get_ray(&self, i: usize, j: usize) -> Ray {
+    //     todo!()
+    // }
 
     fn get_ray_rand(&self, i: usize, j: usize, rng:  &mut SmallRng) -> Ray {
 
@@ -227,10 +227,10 @@ impl Camera {
     }
 
     fn ray_color(ray: &Ray, depth: u32, world: &HittableList) -> Color {
-        if depth <= 0 {return Color(0.,0.,0.)}
+        if depth == 0 {return Color(0.,0.,0.)}
         
         // Low bound to fix shadow acne
-        if let Some(rec) = world.hit(ray, Interval::new(0.001, INFINITY)) {
+        if let Some(rec) = world.hit(ray, Interval::new(0.001, f32::INFINITY)) {
             if let Material::Debug(reflectance) = rec.material.as_ref() {
                 
                 return *reflectance * (rec.normal + Color(1., 1., 1.));

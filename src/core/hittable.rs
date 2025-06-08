@@ -1,8 +1,6 @@
 
-use std::ops;
 use std::rc::Rc;
 
-use super::interval;
 use super::Interval;
 use super::Point3;
 use super::Vec3;
@@ -33,10 +31,10 @@ impl HitRecord {
         (front_face, normal)
     }
 
-    pub fn new() -> Self {
-        todo!()
-        // Self::default()
-    }
+    // pub fn new() -> Self {
+    //     todo!()
+    //     // Self::default()
+    // }
 }
 
 pub trait Hittable {

@@ -10,22 +10,19 @@ mod renderer;
 mod core;
 
 
-use core::camera::{AntiAliasing, Camera};
+use core::camera::AntiAliasing;
 use core::material::Material;
 use core::Vec3;
 use core::Vec3 as Point3;
 
-use core::{Ray};
+// use core::{Ray};
 use core::Color;
-use core::util::*;
+// use core::util::*;
 use core::sphere::Sphere;
 use core::hittable_list::HittableList;
-use core::write_color;
 use std::cell::RefCell;
-use std::io::{BufWriter, Write};
 use std::rc::Rc;
 
-use indicatif::ProgressBar;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 

@@ -1,7 +1,7 @@
 
-use std::{mem::ManuallyDrop, rc::Rc};
+use std::rc::Rc;
 
-use super::{hittable::{HitRecord, Hittable}, material::Material, Interval, Ray};
+use super::{hittable::{HitRecord, Hittable}, Interval, Ray};
 
 pub struct HittableList {
     objects: Vec<Rc<dyn Hittable>>,
@@ -12,9 +12,11 @@ impl HittableList {
      pub fn new() -> Self {
         Self{objects: Vec::new()}
     }
+    #[allow(dead_code)]
      pub fn from(object: Rc<dyn Hittable>) -> Self {
         Self{objects: vec![object]}
     }
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.objects.clear();
     }

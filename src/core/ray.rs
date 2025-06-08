@@ -1,10 +1,6 @@
 
-use std::f32::INFINITY;
 
-use super::hittable::{HitRecord, Hittable};
-use super::hittable_list::HittableList;
-use super::{dot, unit_vector, Interval, Vec3};
-use super::Color;
+use super::Vec3;
 
 type Point3 = Vec3;
 

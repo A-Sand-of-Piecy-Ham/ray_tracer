@@ -1,6 +1,6 @@
-use std::{f32, ops};
+use std::ops;
 
-use rand::{rngs::SmallRng, Rng};
+use rand::Rng;
 
 
 
@@ -139,8 +139,8 @@ impl Vec3 {
     }
     pub fn random_on_hemisphere<R: Rng>(normal: &Vec3, rng: &mut R) -> Vec3 {
         let on_unit_sphere = Self::random_unit_vector(rng);
-        if dot(&on_unit_sphere, normal) > 0.0 {return on_unit_sphere}
-        else {return -on_unit_sphere}
+        if dot(&on_unit_sphere, normal) > 0.0 {on_unit_sphere}
+        else {-on_unit_sphere}
     }
     // Reflects against surface described by normal
     pub fn reflect(&self, norm: &Vec3) -> Vec3 {
@@ -150,14 +150,14 @@ impl Vec3 {
         let cos_theta = (&-*uv).dot(norm).min(1.0);
         let r_out_perp = etai_over_etat * (*uv + cos_theta * *norm);
         let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * *norm;
-        return r_out_perp + r_out_parallel;
+        r_out_perp + r_out_parallel
     }
 
     pub fn dot(&self, rhs: &Vec3) -> f32 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
     pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
-        return Vec3(
+        Vec3(
             u.1 * v.2 - u.2 * v.1,
             u.2 * v.0 - u.0 * v.2,
             u.0 * v.1 - u.1 * v.0

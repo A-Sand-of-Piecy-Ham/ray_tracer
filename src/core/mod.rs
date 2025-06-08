@@ -8,13 +8,15 @@ pub(crate) mod interval;
 
 
 
-// mod random;
+mod random;
 pub mod material;
 pub mod camera;
 
 pub mod util;
 
-pub use vec3::{Vec3, unit_vector, dot};
+#[allow(unused_imports)]
+pub use random::*;
+pub use vec3::{Vec3, unit_vector};
 pub use color::{write_color, Color};
 pub use ray::{Ray};
 pub use interval::Interval;

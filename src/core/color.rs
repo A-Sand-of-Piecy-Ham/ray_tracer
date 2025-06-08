@@ -1,6 +1,5 @@
 // mod vec3;
 
-use std::f32::EPSILON;
 use std::{io::Write, io::BufWriter};
 use std::io;
 use super::Interval;
@@ -35,5 +34,5 @@ fn linear_to_gamma(linear_component: f32) -> f32 {
     if linear_component > 0. {
         return linear_component.sqrt();
     }
-    return 0.;
+    0.0
 }
