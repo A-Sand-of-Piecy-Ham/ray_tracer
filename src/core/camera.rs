@@ -1,11 +1,16 @@
-use std::cell::RefCell;
+use std::fs::File;
 // use f32::INFINITY;
 use std::io::{BufWriter, Write};
+use std::iter::zip;
 
+use image::{ImageEncoder, ImageResult};
 use indicatif::ProgressBar;
-use rand::rngs::SmallRng;
 use rand::Rng;
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use image::codecs::png::PngEncoder;
+use rayon::slice::{ParallelSlice, ParallelSliceMut};
 
+use crate::core::color::{F32ColorToU8, GammaCorrection};
 use crate::core::material::ScatterContext;
 use crate::core::util::degrees_to_radians;
 
@@ -27,7 +32,7 @@ use super::unit_vector;
 pub enum AntiAliasing {
     #[default]
     None,
-    RandomSamples(u16, RefCell<SmallRng>)
+    RandomSamples(u16)
 }
 
 impl AntiAliasing {
@@ -48,13 +53,12 @@ impl AntiAliasing {
 
                 pixel_color
             }
-            Self::RandomSamples(num_samples, rng) => {
-                let rng = &mut rng.borrow_mut();
+            Self::RandomSamples(num_samples) => {
 
                 let mut pixel_color = Color(0., 0., 0.);
 
                 for _ in 0..*num_samples {
-                    let ray = camera.get_ray_rand(i, j, rng);
+                    let ray = camera.get_ray_rand(i, j);
                     pixel_color += Camera::ray_color(&ray, camera.max_depth, world);
                 }
 
@@ -175,29 +179,57 @@ impl Camera {
         CameraBuilder{aspect_ratio, image_width, anti_aliasing, max_depth, vfov, lookfrom, lookat, vup}
     }
 
-    pub fn render(&self, world: &HittableList) {
+    pub fn render(&self, world: &HittableList) -> Result<(), Box<dyn std::error::Error>> {
         // let num_samples = match self.anti_aliasing {
         //     AntiAliasing::None => 1,
         //     AntiAliasing::RandomSamples(num, _) => num 
         // };
+        // let image_buffer = image::ImageBuffer::new();
+        // let file = 
+
         let bar = ProgressBar::new((self.image_height*self.image_width) as u64);
 
-        let mut out = BufWriter::new(std::io::stdout());
+        // let mut out = BufWriter::new(std::io::stdout());
+        let mut img = File::create("img.png")?;
+        // Prints nothing to std::out and panics after generating
+        // let encoder = PngEncoder::new(&mut out);
+        let encoder = PngEncoder::new(&mut img);
+
+        let mut image_buffer: Vec<Color> = vec![Color::default(); self.image_height * self.image_width];
 
         // println!("P3\n{self.image_width} {self.image_height}\n255\n");
-        writeln!(&mut out, "P3\n{} {}\n255\n", self.image_width, self.image_height).unwrap();
+        // writeln!(&mut out, "P3\n{} {}\n255\n", self.image_width, self.image_height).unwrap();
 
-        for j in 0..self.image_height {
+        // (0..self.image_height).into_par_iter().zip(image_buffer.par_chunks_exact(self.image_width).into_par_iter()).for_each(|j, chunk| {
+        (image_buffer.par_chunks_exact_mut(self.image_width)).enumerate().for_each(|(j, chunk)| {
+            // let row_buf = vec![Color::default(); self.image_width];
+
             bar.inc(self.image_width as u64);
             for i in 0..self.image_width {
 
                 let pixel_color = self.anti_aliasing.sample(i, j, self, world);
 
-                write_color(&mut out, &pixel_color).unwrap();
+                chunk[i] = pixel_color;
+                // write_color(&mut out, &pixel_color).unwrap();
 
             }
-        }
+            // let offset = self.image_height * j;
+            // image_buffer[offset..(offset+self.image_width)].copy_from_slice(&row_buf); 
+            // chunk.copy_from_slice(&row_buf); 
+        });
+
+        // let mut img = ImageWriter::new():
+        self.write_color_encoded(encoder, image_buffer)?;
         bar.finish();
+        Ok(())
+    }
+
+    pub fn write_color_encoded<E: ImageEncoder>(&self, encoder: E, pixel_buffer: Vec<Color>) -> ImageResult<()> {
+        
+        let bytes: Box<[u8]> = pixel_buffer.into_iter().flat_map(|x| {x.linear_to_gamma().f32_color_to_u8().into_iter()}).collect();
+        encoder.write_image(&bytes, self.image_width as u32, self.image_height as u32, image::ExtendedColorType::Rgb8)?;
+        
+        Ok(())
     }
 
     // fn initialize() {
@@ -208,9 +240,9 @@ impl Camera {
     //     todo!()
     // }
 
-    fn get_ray_rand(&self, i: usize, j: usize, rng:  &mut SmallRng) -> Ray {
+    fn get_ray_rand(&self, i: usize, j: usize) -> Ray {
 
-        let offset = Self::sample_square_rand(rng);
+        let offset = Self::sample_square_rand();
         let pixel_sample = self.pixel00_loc 
             + ((i as f32 + offset.x()) * self.pixel_delta_u)
             + ((j as f32 + offset.y()) * self.pixel_delta_v);
@@ -222,7 +254,8 @@ impl Camera {
     }
 
     /// Returns vector to random point in the [-.5, -.5]-[+.5,+.5] unit square
-    fn sample_square_rand(rng: &mut SmallRng) -> Vec3 {
+    fn sample_square_rand() -> Vec3 {
+        let mut rng = rand::rng();
         Vec3(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.0)
     }
 

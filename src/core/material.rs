@@ -1,8 +1,6 @@
-use std::cell::RefCell;
-
-use rand::{rngs::SmallRng, Rng};
 
 use crate::core::hittable::HitRecord;
+use crate::core::random;
 use crate::core::unit_vector;
 use crate::core::Ray;
 
@@ -14,16 +12,16 @@ pub enum Material {
     /// Colors based off shape normals
     Debug(Color),
     #[allow(dead_code)]
-    RandomDiffuse(RefCell<SmallRng>, Color),
-    LambertianDiffuseRandom {rng_cell: RefCell<SmallRng>, albedo: Color },
+    RandomDiffuse(Color),
+    LambertianDiffuseRandom {albedo: Color },
     #[allow(dead_code)]
     Metalic(Color),
     // Albedo, fuzziness, rng_cell
-    MetalicFuzz(Color, f32, RefCell<SmallRng>),
+    MetalicFuzz(Color, f32),
     // Refraction index    
     // Refractive index in vacuum or air, or the ratio of the material's refractive index over
     // the refractive index of the enclosing media
-    Dielectric(f32, RefCell<SmallRng>)
+    Dielectric(f32)
 }
 
 impl Default for Material {
@@ -43,11 +41,9 @@ impl Material {
         match self {
             Self::Debug(_albedo) => unimplemented!(),
             
-            Self::RandomDiffuse(rng_cell, albedo) => {
-                let mut direction = {
-                    let rng = &mut rng_cell.borrow_mut();
-                    Vec3::random_on_hemisphere(&rec.normal, rng)
-                };
+            Self::RandomDiffuse(albedo) => {
+                
+                let mut direction = Vec3::random_on_hemisphere(&rec.normal);
                 if direction.near_zero() {
                     direction = rec.normal;
                 }
@@ -57,11 +53,8 @@ impl Material {
                 return Some(ScatterContext{scattered, attenuation});
             },
 
-            Self::LambertianDiffuseRandom {rng_cell, albedo} => {
-                let mut scatter_direction = {
-                    let rng = &mut rng_cell.borrow_mut();
-                    rec.normal + Vec3::random_unit_vector(rng)
-                };
+            Self::LambertianDiffuseRandom {albedo} => {
+                let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
 
                 if scatter_direction.near_zero() {
                     scatter_direction = rec.normal;
@@ -77,19 +70,15 @@ impl Material {
                 let attenuation = *albedo;
                 return Some(ScatterContext{scattered, attenuation});
             }
-            Self::MetalicFuzz(albedo, fuzz, rng_cell) => {
+            Self::MetalicFuzz(albedo, fuzz) => {
                 if *fuzz > 1.0 {panic!("Fuzz value cannot exceed 1")}
 
-                let reflected = {
-                    let rng = &mut rng_cell.borrow_mut();
-                    ray_in.direction.reflect(&rec.normal).normalize() 
-                        + (*fuzz * Vec3::random_unit_vector(rng))
-                };
+                let reflected = ray_in.direction.reflect(&rec.normal).normalize() + (*fuzz * Vec3::random_unit_vector());
                 let scattered = Ray::new(rec.point, reflected);
                 let attenuation = *albedo;
                 return Some(ScatterContext{scattered, attenuation})
             }
-            Self::Dielectric(refraction_index, rng_cell) => {
+            Self::Dielectric(refraction_index) => {
                 let attenuation = Color(1.0, 1.0, 1.0);
                 let ri = if rec.front_face  {1.0/refraction_index} else {*refraction_index};
 
@@ -100,7 +89,7 @@ impl Material {
 
                 let cannot_refract: bool = ri * sin_theta > 1.0;
 
-                let random_float:f32 = {rng_cell.borrow_mut().random()};
+                let random_float:f32 = random::random_float();
 
                 let direction = if cannot_refract || reflectance(cos_theta, ri) > random_float {
                         Vec3::reflect(&unit_direction, &rec.normal)                   

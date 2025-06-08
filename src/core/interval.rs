@@ -12,7 +12,7 @@ impl Default for Interval {
 }
 
 impl Interval {
-    pub fn new(min: f32, max: f32) -> Self {
+    pub const fn new(min: f32, max: f32) -> Self {
         Self{min, max}
     }
     #[allow(dead_code)]

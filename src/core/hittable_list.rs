@@ -1,10 +1,11 @@
 
-use std::rc::Rc;
+use std::{sync::Arc};
 
 use super::{hittable::{HitRecord, Hittable}, Interval, Ray};
 
+// #[derive(Clone)]
 pub struct HittableList {
-    objects: Vec<Rc<dyn Hittable>>,
+    objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -13,14 +14,14 @@ impl HittableList {
         Self{objects: Vec::new()}
     }
     #[allow(dead_code)]
-     pub fn from(object: Rc<dyn Hittable>) -> Self {
+     pub fn from(object: Arc<dyn Hittable>) -> Self {
         Self{objects: vec![object]}
     }
     #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.objects.clear();
     }
-    pub fn add(&mut self, object: Rc<dyn Hittable>) {
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);
     }
     pub fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord> {

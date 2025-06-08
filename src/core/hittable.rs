@@ -1,5 +1,5 @@
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::Interval;
 use super::Point3;
@@ -16,7 +16,7 @@ pub struct HitRecord {
     pub normal: Vec3,
     pub t: f32,
     pub front_face: bool,
-    pub material: Rc<Material>,
+    pub material: Arc<Material>,
 }
 
 impl HitRecord {
@@ -37,7 +37,7 @@ impl HitRecord {
     // }
 }
 
-pub trait Hittable {
+pub trait Hittable: Sync + Send {
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool;
     fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord>;
 }

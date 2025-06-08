@@ -22,6 +22,7 @@ use core::sphere::Sphere;
 use core::hittable_list::HittableList;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
@@ -61,34 +62,32 @@ fn main() {
     // let material = Rc::new(Material::Debug);
     // let material = Rc::new(Material::RandomDiffuse(rng.clone(), Color(0.5,0.5,0.5)));
     // let material = Rc::new(Material::LambertianDiffuseRandom {rng_cell: rng.clone(), albedo: Color(0.5,0.5,0.5)});
-    let material_ground = Rc::new(Material::LambertianDiffuseRandom {
-        rng_cell: rng.clone(), 
+    let material_ground = Arc::new(Material::LambertianDiffuseRandom { 
         albedo: Color(0.8,0.8,0.0)
     });
-    let material_left = Rc::new(Material::Dielectric(1.50, rng.clone()));
-    let material_bubble = Rc::new(Material::Dielectric(1.0/1.50, rng.clone()));
-    let material_right = Rc::new(Material::MetalicFuzz(Color(0.8,0.6,0.2), 1.0, rng.clone()));
-    let material_center = Rc::new(Material::LambertianDiffuseRandom {
-        rng_cell: rng.clone(), 
+    let material_left = Arc::new(Material::Dielectric(1.50));
+    let material_bubble = Arc::new(Material::Dielectric(1.0/1.50));
+    let material_right = Arc::new(Material::MetalicFuzz(Color(0.8,0.6,0.2), 1.0));
+    let material_center = Arc::new(Material::LambertianDiffuseRandom {
         albedo: Color(0.1,0.2,0.5)
     });
     
     let max_bounces = 10;
     // let max_bounces = 2;
 
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(Point3(0.,-100.5,-1.0), 100., material_ground.clone())
     ));
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(Point3(0.,0.,-1.2), 0.5, material_center.clone())
     ));
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(Point3(-1.0, 0.0, -1.0), 0.5, material_left.clone())
     ));
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(Point3(-1.0, 0.0, -1.0), 0.45, material_bubble.clone())
     ));
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(Point3(1.0, 0.0, -1.0), 0.5, material_right.clone())
     ));
 
@@ -97,12 +96,12 @@ fn main() {
     // let image_width:usize = 400;
     // let image_width:usize = 400;
     let image_width:usize = 600;
-    let pixel_samples = 50;
+    let pixel_samples = 500;
 
 
-    let anti_aliasing = AntiAliasing::RandomSamples(pixel_samples, rng.clone());
+    let anti_aliasing = AntiAliasing::RandomSamples(pixel_samples);
 
-    let fov = 90.0;
+    let fov = 40.0;
     let lookfrom = Point3(-2.0, 2.0, 1.0);
     let lookat = Point3(0.0, 0.0, -1.0); 
     let vup = Vec3(0.0,1.0,0.0);
@@ -121,7 +120,7 @@ fn main() {
     let camera = cam_builder.build();
     // let camera = Camera::new_builder(aspect_ratio, image_width, max_bounces + 1, anti_aliasing, 90.0, lookat, lookfrom).build();
 
-    camera.render(&world);
+    camera.render(&world).unwrap();
 
     // Render
 

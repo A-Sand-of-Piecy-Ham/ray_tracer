@@ -20,6 +20,16 @@ impl Vec3 {
     pub const fn div_scalar(self, rhs: f32) -> Self {
         Self(self.0/rhs, self.1/rhs, self.2/rhs)
     }
+
+    pub fn to_bytes(self) -> [u8; 12] {
+        // Can be accellerated with unsafe cast
+
+        let mut arr: [u8; 12] = [0; 12];
+        arr[0..4].copy_from_slice(&self.0.to_be_bytes());
+        arr[4..8].copy_from_slice(&self.1.to_be_bytes());
+        arr[8..12].copy_from_slice(&self.2.to_be_bytes());
+        arr
+    }
 }
 
 pub fn unit_vector(vec: Vec3) -> Vec3 {
@@ -127,18 +137,19 @@ impl Vec3 {
     pub fn random<R: Rng>(rng: &mut R) -> Vec3 {
         Self(rng.random(), rng.random(), rng.random())
     }
-    pub fn random_bounded<R: Rng>(rng: &mut R, min: f32, max:f32) -> Vec3 {
+    pub fn random_bounded(min: f32, max:f32) -> Vec3 {
+        let mut rng = rand::rng();
         Self(rng.random_range(min..max), rng.random_range(min..max), rng.random_range(min..max))
     }
-    pub fn random_unit_vector<R: Rng>(rng: &mut R) -> Vec3 {
+    pub fn random_unit_vector() -> Vec3 {
         loop {
-            let p = Vec3::random_bounded(rng, -1.0, 1.0);
+            let p = Vec3::random_bounded(-1.0, 1.0);
             let lensq = p.length_squared();
             if lensq <= 1.0 && lensq > 1e-160 { return p / lensq.sqrt(); }
         }
     }
-    pub fn random_on_hemisphere<R: Rng>(normal: &Vec3, rng: &mut R) -> Vec3 {
-        let on_unit_sphere = Self::random_unit_vector(rng);
+    pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+        let on_unit_sphere = Self::random_unit_vector();
         if dot(&on_unit_sphere, normal) > 0.0 {on_unit_sphere}
         else {-on_unit_sphere}
     }

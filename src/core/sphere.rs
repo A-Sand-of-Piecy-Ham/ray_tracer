@@ -1,5 +1,5 @@
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::hittable::Hittable;
 use super::ray::Ray;
@@ -16,12 +16,12 @@ type fPE = f32;
 pub struct Sphere {
     pub center: Point3,
     pub radius: fPE,
-    pub material: Rc<Material>,
+    pub material: Arc<Material>,
     _lock: ()
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f32, material: Rc<Material>) -> Self {
+    pub fn new(center: Vec3, radius: f32, material: Arc<Material>) -> Self {
         Self{center, radius: radius.max(0.0), material, _lock:()}
     }
 }
