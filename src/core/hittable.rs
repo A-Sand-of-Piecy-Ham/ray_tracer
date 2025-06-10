@@ -1,4 +1,5 @@
 
+use std::any::Any;
 use std::sync::Arc;
 
 use super::Interval;
@@ -37,7 +38,7 @@ impl HitRecord {
     // }
 }
 
-pub trait Hittable: Sync + Send {
+pub trait Hittable: Any + Sync + Send {
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool;
     fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord>;
 }

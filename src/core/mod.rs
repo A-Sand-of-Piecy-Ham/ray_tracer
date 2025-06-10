@@ -13,6 +13,9 @@ pub mod material;
 pub mod camera;
 
 pub mod util;
+pub mod scene;
+
+pub use scene::*;
 
 #[allow(unused_imports)]
 pub use random::*;
