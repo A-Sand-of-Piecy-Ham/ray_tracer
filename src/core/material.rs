@@ -37,7 +37,7 @@ pub struct ScatterContext {
 }
 
 impl Material {
-    pub fn scatter(&self, ray_in: &Ray, rec: &HitRecord) -> Option<ScatterContext> {
+    pub fn scatter(&self, ray_in: Ray, rec: &HitRecord) -> Option<ScatterContext> {
         match self {
             Self::Debug(_albedo) => unimplemented!(),
             

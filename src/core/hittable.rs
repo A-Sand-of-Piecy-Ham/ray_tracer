@@ -23,7 +23,7 @@ pub struct HitRecord {
 impl HitRecord {
     /// Returns front_face bool and corresponding normal vector
     /// *Note:* the parameter `outward_normal` is assumed to have unit length
-    pub fn get_face_normal(ray: &Ray, outward_normal: &Vec3) -> (bool, Vec3) {
+    pub fn get_face_normal(ray: Ray, outward_normal: &Vec3) -> (bool, Vec3) {
         let front_face = ray.direction.dot(outward_normal) < 0.0;
         let normal = match front_face {
             true => *outward_normal, 
@@ -38,7 +38,18 @@ impl HitRecord {
     // }
 }
 
-pub trait Hittable: Any + Sync + Send {
+pub trait Hittable: 'static + Sync + Send {
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool;
-    fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord>;
+    fn hit(&self, ray: Ray, ray_bounds: Interval) -> Option<HitRecord>;
+}
+
+/// Is this bad code??
+/// Lazy patch fix for not wanting to make scene::ObjectList<T> take Arcs instead of hittables
+/// This also means that it will store Arcs instead of storing spheres, which is more indirection? Well actually I think we would be storing the Arcs anyways. 
+/// Maybe we can move the sphere to the Scene and then get the Arc from that to make memory contigious?
+impl<T: Hittable> Hittable for Arc<T> {
+    #[inline]
+    fn hit(&self, ray: Ray, ray_bounds: Interval) -> Option<HitRecord> {
+        (**self).hit(ray, ray_bounds)
+    }
 }

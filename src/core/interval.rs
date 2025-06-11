@@ -1,5 +1,6 @@
 const INFINITY:f32 = f32::INFINITY;
 
+#[derive(Clone, Copy, Debug)]
 pub struct Interval {
     pub min: f32,
     pub max: f32,

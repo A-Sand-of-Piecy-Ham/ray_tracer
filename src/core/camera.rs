@@ -13,6 +13,7 @@ use rayon::slice::{ParallelSlice, ParallelSliceMut};
 use crate::core::color::{F32ColorToU8, GammaCorrection};
 use crate::core::material::ScatterContext;
 use crate::core::util::degrees_to_radians;
+use crate::core::Scene;
 
 // use super::hittable::HitRecord;
 use super::material::Material;
@@ -36,6 +37,39 @@ pub enum AntiAliasing {
 }
 
 impl AntiAliasing {
+    pub fn sample_scene(&self, i: usize, j: usize, camera: &Camera, world: &Scene) -> Color {
+
+        match self {
+            Self::None => {
+                
+                let pixel_center = camera.pixel00_loc + (camera.pixel_delta_u * i as f32) + (camera.pixel_delta_v * j as f32);
+
+                let ray_direction = pixel_center - camera.center;
+
+
+                let ray = Ray{origin: camera.center, direction: ray_direction};
+
+                let pixel_color = Camera::scene_ray_color(ray, camera.max_depth, &world);
+                
+
+                pixel_color
+            }
+            Self::RandomSamples(num_samples) => {
+
+                let mut pixel_color = Color(0., 0., 0.);
+
+                for _ in 0..*num_samples {
+                    let ray = camera.get_ray_rand(i, j);
+                    pixel_color += Camera::scene_ray_color(ray, camera.max_depth, world);
+                }
+
+
+                pixel_color / *num_samples as f32
+            }
+
+        }
+    }
+
     pub fn sample(&self, i: usize, j: usize, camera: &Camera, world: &HittableList) -> Color {
 
         match self {
@@ -48,7 +82,7 @@ impl AntiAliasing {
 
                 let ray = Ray{origin: camera.center, direction: ray_direction};
 
-                let pixel_color = Camera::ray_color(&ray, camera.max_depth, &world);
+                let pixel_color = Camera::ray_color(ray, camera.max_depth, &world);
                 
 
                 pixel_color
@@ -59,7 +93,7 @@ impl AntiAliasing {
 
                 for _ in 0..*num_samples {
                     let ray = camera.get_ray_rand(i, j);
-                    pixel_color += Camera::ray_color(&ray, camera.max_depth, world);
+                    pixel_color += Camera::ray_color(ray, camera.max_depth, world);
                 }
 
 
@@ -178,6 +212,50 @@ impl Camera {
     pub fn new_builder(aspect_ratio: f64, image_width: usize, max_depth: u32, anti_aliasing: AntiAliasing, vfov: f32, lookat: Point3, lookfrom: Point3, vup: Vec3) -> CameraBuilder {
         CameraBuilder{aspect_ratio, image_width, anti_aliasing, max_depth, vfov, lookfrom, lookat, vup}
     }
+    pub fn render_scene(&self, world: &Scene) -> Result<(), Box<dyn std::error::Error>> {
+        // let num_samples = match self.anti_aliasing {
+        //     AntiAliasing::None => 1,
+        //     AntiAliasing::RandomSamples(num, _) => num 
+        // };
+        // let image_buffer = image::ImageBuffer::new();
+        // let file = 
+
+        let bar = ProgressBar::new((self.image_height*self.image_width) as u64);
+
+        // let mut out = BufWriter::new(std::io::stdout());
+        let mut img = File::create("img.png")?;
+        // Prints nothing to std::out and panics after generating
+        // let encoder = PngEncoder::new(&mut out);
+        let encoder = PngEncoder::new(&mut img);
+
+        let mut image_buffer: Vec<Color> = vec![Color::default(); self.image_height * self.image_width];
+
+        // println!("P3\n{self.image_width} {self.image_height}\n255\n");
+        // writeln!(&mut out, "P3\n{} {}\n255\n", self.image_width, self.image_height).unwrap();
+
+        // (0..self.image_height).into_par_iter().zip(image_buffer.par_chunks_exact(self.image_width).into_par_iter()).for_each(|j, chunk| {
+        (image_buffer.par_chunks_exact_mut(self.image_width)).enumerate().for_each(|(j, chunk)| {
+            // let row_buf = vec![Color::default(); self.image_width];
+
+            bar.inc(self.image_width as u64);
+            for i in 0..self.image_width {
+
+                let pixel_color = self.anti_aliasing.sample_scene(i, j, self, world);
+
+                chunk[i] = pixel_color;
+                // write_color(&mut out, &pixel_color).unwrap();
+
+            }
+            // let offset = self.image_height * j;
+            // image_buffer[offset..(offset+self.image_width)].copy_from_slice(&row_buf); 
+            // chunk.copy_from_slice(&row_buf); 
+        });
+
+        // let mut img = ImageWriter::new():
+        self.write_color_encoded(encoder, image_buffer)?;
+        bar.finish();
+        Ok(())
+    }
 
     pub fn render(&self, world: &HittableList) -> Result<(), Box<dyn std::error::Error>> {
         // let num_samples = match self.anti_aliasing {
@@ -259,7 +337,7 @@ impl Camera {
         Vec3(rng.random::<f32>() - 0.5, rng.random::<f32>() - 0.5, 0.0)
     }
 
-    fn ray_color(ray: &Ray, depth: u32, world: &HittableList) -> Color {
+    fn scene_ray_color(ray: Ray, depth: u32, world: &Scene) -> Color {
         if depth == 0 {return Color(0.,0.,0.)}
         
         // Low bound to fix shadow acne
@@ -270,7 +348,30 @@ impl Camera {
             }
 
             if let Some(ScatterContext{scattered, attenuation}) = rec.material.scatter(ray, &rec) {
-                return attenuation * Self::ray_color(&scattered, depth-1, world);
+                return attenuation * Self::scene_ray_color(scattered, depth-1, world);
+            }
+            return Color(0.,0.,0.);
+        
+        }
+
+        
+        // Color the sky
+        let unit_direction: Vec3 = unit_vector(ray.direction);
+        let a = 0.5 * (unit_direction.y() + 1.0);
+        Color(1.0, 1.0, 1.0) * (1.0 - a) + a*Color(0.5, 0.7, 1.0)
+    }
+    fn ray_color(ray: Ray, depth: u32, world: &HittableList) -> Color {
+        if depth == 0 {return Color(0.,0.,0.)}
+        
+        // Low bound to fix shadow acne
+        if let Some(rec) = world.hit(ray, Interval::new(0.001, f32::INFINITY)) {
+            if let Material::Debug(reflectance) = rec.material.as_ref() {
+                
+                return *reflectance * (rec.normal + Color(1., 1., 1.));
+            }
+
+            if let Some(ScatterContext{scattered, attenuation}) = rec.material.scatter(ray, &rec) {
+                return attenuation * Self::ray_color(scattered, depth-1, world);
             }
             return Color(0.,0.,0.);
         

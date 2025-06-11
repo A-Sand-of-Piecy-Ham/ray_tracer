@@ -24,7 +24,7 @@ impl HittableList {
     pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);
     }
-    pub fn hit(&self, ray: &Ray, ray_bounds: Interval) -> Option<HitRecord> {
+    pub fn hit(&self, ray: Ray, ray_bounds: Interval) -> Option<HitRecord> {
         let mut rec: Option<HitRecord> = None; // = HitRecord::default();
         
 

@@ -28,6 +28,7 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
 use crate::core::camera::CameraBuilder;
+use crate::core::Scene;
 // use node::*;
 
 
@@ -56,7 +57,10 @@ fn main() {
 
     // World
 
+    // Both world and scene present for testing
     let mut world = HittableList::new();
+    let mut scene = Scene::new(Color(1.0, 0.0, 0.0));
+
     let rng = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
 
     // let material = Rc::new(Material::Debug);
@@ -74,6 +78,23 @@ fn main() {
     
     let max_bounces = 10;
     // let max_bounces = 2;
+
+
+    scene.add(Arc::new(
+        Sphere::new(Point3(0.,-100.5,-1.0), 100., material_ground.clone())
+    ));
+    scene.add(Arc::new(
+        Sphere::new(Point3(0.,0.,-1.2), 0.5, material_center.clone())
+    ));
+    scene.add(Arc::new(
+        Sphere::new(Point3(-1.0, 0.0, -1.0), 0.5, material_left.clone())
+    ));
+    scene.add(Arc::new(
+        Sphere::new(Point3(-1.0, 0.0, -1.0), 0.45, material_bubble.clone())
+    ));
+    scene.add(Arc::new(
+        Sphere::new(Point3(1.0, 0.0, -1.0), 0.5, material_right.clone())
+    ));
 
     world.add(Arc::new(
         Sphere::new(Point3(0.,-100.5,-1.0), 100., material_ground.clone())
@@ -101,7 +122,7 @@ fn main() {
 
     let anti_aliasing = AntiAliasing::RandomSamples(pixel_samples);
 
-    let fov = 40.0;
+    let fov = 60.0;
     let lookfrom = Point3(-2.0, 2.0, 1.0);
     let lookat = Point3(0.0, 0.0, -1.0); 
     let vup = Vec3(0.0,1.0,0.0);
@@ -121,6 +142,7 @@ fn main() {
     // let camera = Camera::new_builder(aspect_ratio, image_width, max_bounces + 1, anti_aliasing, 90.0, lookat, lookfrom).build();
 
     camera.render(&world).unwrap();
+    // camera.render_scene(&scene).unwrap();
 
     // Render
 
