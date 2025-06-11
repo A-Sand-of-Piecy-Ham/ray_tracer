@@ -38,7 +38,7 @@ impl HitRecord {
     // }
 }
 
-pub trait Hittable: 'static + Sync + Send {
+pub trait Hittable: 'static + std::fmt::Debug + Sync + Send {
     // fn hit<fT: From<f32> + From<f64> + ops::Mul<fT> + ops::Div<fT>>(&self, ray: &Ray, ray_tmin: fT, ray_tmax: fT, rec: &mut HitRecord<fT>) -> bool;
     fn hit(&self, ray: Ray, ray_bounds: Interval) -> Option<HitRecord>;
 }

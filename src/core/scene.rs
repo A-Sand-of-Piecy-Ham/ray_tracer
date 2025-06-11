@@ -63,7 +63,7 @@ impl Scene {
     fn get_storage<T: Hittable>(&self) -> Result<&ObjectList<T>, String> {
         let Some(object_list) = self.lists.get(&TypeId::of::<T>()) else {return Err("Cannot retireve object: Object type is not currently stored within scene!".to_string())};
 
-        let type_restored_object = unsafe{ object_list.get::<T>() };
+        let type_restored_object = unsafe{ object_list.get_unchecked::<T>() };
 
         Ok(type_restored_object)
 
@@ -77,19 +77,26 @@ impl Scene {
     fn insert_storage<T: Hittable>(&mut self, object: T) -> &ObjectList<T> {
         // const type_id: TypeId = TypeId::of::<T>();
         let type_id: TypeId = TypeId::of::<T>();
-        let erased_list = self.lists.entry(type_id).or_insert_with(|| {
-            let mut object_storage = ObjectList::new(); 
-            object_storage.push(object);
-            object_storage.into()
-        });
 
-        // object_storage;
-        // This line might be bad lol
-        // unsafe{ self.lists.get_mut(&type_id).unwrap().get::<T>() }
-        // unsafe{ self.lists.get_mut(&type_id).unwrap().get::<T>() }
-        erased_list.get::<T>()
+        let erased_list = self.lists.entry(type_id)
+            .or_insert_with(|| ObjectList::<T>::new().into());
+        
+        let object_storage = erased_list.get_mut::<T>();
+        object_storage.push(object);
+        object_storage
+
+        // if in lists
+            // get erased_list
+            // convert to list
+            // add object
+            // return
+        // else 
+            // create list
+            // add object
+            // convert to erased list
+            // add erased list to lists
+            // return list
     }
-    // objects_storages: 
 }
 
 // /// Basically just the hittable trait, but ErasedObjectList is not send + sync, additionally stops the list from storing itself
@@ -141,10 +148,16 @@ impl ErasedObjectList {
         debug_assert_eq!(TypeId::of::<T>(), self.data_type, "Type requested did not match stored type");
         unsafe { &*(self.data.as_ptr() as *const ObjectList<T>) }
     }
-    /// Returns re-typed object list, panics on mismatched type
+    /// Returns & to re-typed object list, panics on mismatched type
     fn get<T: Hittable>(&self) -> &ObjectList<T> {
         assert!(TypeId::of::<T>() == self.data_type, "Type requested did not match stored type");
         unsafe { &*(self.data.as_ptr() as *const ObjectList<T>) }
+    }
+    /// Returns &mut to re-typed object list, panics on mismatched type
+    /// Probably safe. Maybe some multithreading issue
+    fn get_mut<T: Hittable>(&self) -> &mut ObjectList<T> {
+        assert!(TypeId::of::<T>() == self.data_type, "Type requested did not match stored type");
+        unsafe { &mut *(self.data.as_ptr() as *mut ObjectList<T>) }
     }
     // /// Should be fine as long as theres no coexsiting &mut to the ObjectList<T>, or else UB
     // unsafe fn get_from_ptr<T: Hittable>(ptr: NonNull<()>) -> ObjectList<T> {

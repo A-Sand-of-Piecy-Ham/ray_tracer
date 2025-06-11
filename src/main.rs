@@ -123,7 +123,7 @@ fn main() {
     let anti_aliasing = AntiAliasing::RandomSamples(pixel_samples);
 
     let fov = 60.0;
-    let lookfrom = Point3(-2.0, 2.0, 1.0);
+    let lookfrom = Point3(-2.0, 0.6, 1.0);
     let lookat = Point3(0.0, 0.0, -1.0); 
     let vup = Vec3(0.0,1.0,0.0);
 
@@ -141,8 +141,8 @@ fn main() {
     let camera = cam_builder.build();
     // let camera = Camera::new_builder(aspect_ratio, image_width, max_bounces + 1, anti_aliasing, 90.0, lookat, lookfrom).build();
 
-    camera.render(&world).unwrap();
-    // camera.render_scene(&scene).unwrap();
+    // camera.render(&world).unwrap();
+    camera.render_scene(&scene).unwrap();
 
     // Render
 
